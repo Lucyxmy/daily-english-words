@@ -64,6 +64,16 @@
     color: #667eea;
     border-color: #fff;
   }
+  .category-selector button {
+    border-color: rgba(255,255,255,0.3);
+    font-size: 13px;
+    padding: 5px 14px;
+  }
+  .category-selector button.active {
+    background: rgba(255,215,0,0.25);
+    border-color: #ffd700;
+    color: #ffd700;
+  }
   .progress-section {
     background: rgba(255,255,255,0.2);
     border-radius: 12px;
@@ -249,6 +259,10 @@
     <button data-grade="3">三年级</button>
     <button data-grade="4">四年级</button>
     <button data-grade="5">五年级</button>
+  </div>
+  <div class="grade-selector category-selector" id="categorySelector">
+    <button data-grade="travel">✈️ 旅游英语</button>
+    <button data-grade="daily">🏠 日常生活</button>
   </div>
 
   <div class="progress-section">
@@ -656,6 +670,94 @@ const WORDS_BY_GRADE = {
     { en: 'who', cn: '谁', phonetic: '/huː/' },
     { en: 'whose', cn: '谁的', phonetic: '/huːz/' },
   ],
+
+  // ---- 旅游英语（出行必备）----
+  travel: [
+    { en: 'airport', cn: '机场', phonetic: '/ˈer.pɔːrt/' },
+    { en: 'flight', cn: '航班', phonetic: '/flaɪt/' },
+    { en: 'passport', cn: '护照', phonetic: '/ˈpæs.pɔːrt/' },
+    { en: 'visa', cn: '签证', phonetic: '/ˈviː.zə/' },
+    { en: 'ticket', cn: '票', phonetic: '/ˈtɪk.ɪt/' },
+    { en: 'luggage', cn: '行李', phonetic: '/ˈlʌɡ.ɪdʒ/' },
+    { en: 'hotel', cn: '酒店', phonetic: '/hoʊˈtel/' },
+    { en: 'reservation', cn: '预订', phonetic: '/ˌrez.ərˈveɪ.ʃən/' },
+    { en: 'check-in', cn: '办理入住', phonetic: '/tʃek ɪn/' },
+    { en: 'checkout', cn: '退房', phonetic: '/ˈtʃek.aʊt/' },
+    { en: 'boarding pass', cn: '登机牌', phonetic: '' },
+    { en: 'departure', cn: '出发', phonetic: '/dɪˈpɑːr.tʃər/' },
+    { en: 'arrival', cn: '到达', phonetic: '/əˈraɪ.vəl/' },
+    { en: 'customs', cn: '海关', phonetic: '/ˈkʌs.təmz/' },
+    { en: 'suitcase', cn: '手提箱', phonetic: '/ˈsuːt.keɪs/' },
+    { en: 'guide', cn: '导游', phonetic: '/ɡaɪd/' },
+    { en: 'tour', cn: '旅游', phonetic: '/tʊr/' },
+    { en: 'map', cn: '地图', phonetic: '/mæp/' },
+    { en: 'souvenir', cn: '纪念品', phonetic: '/ˌsuː.vəˈnɪr/' },
+    { en: 'museum', cn: '博物馆', phonetic: '/mjuːˈziː.əm/' },
+    { en: 'beach', cn: '海滩', phonetic: '/biːtʃ/' },
+    { en: 'mountain', cn: '山', phonetic: '/ˈmaʊn.tɪn/' },
+    { en: 'camera', cn: '相机', phonetic: '/ˈkæm.rə/' },
+    { en: 'travel', cn: '旅行', phonetic: '/ˈtræv.əl/' },
+    { en: 'currency', cn: '货币', phonetic: '/ˈkɜːr.ən.si/' },
+    { en: 'exchange', cn: '兑换', phonetic: '/ɪksˈtʃeɪndʒ/' },
+    { en: 'single room', cn: '单人间', phonetic: '' },
+    { en: 'double room', cn: '双人间', phonetic: '' },
+    { en: 'restaurant', cn: '餐厅', phonetic: '/ˈres.tər.ɒnt/' },
+    { en: 'menu', cn: '菜单', phonetic: '/ˈmen.juː/' },
+    { en: 'order', cn: '点餐', phonetic: '/ˈɔːr.dər/' },
+    { en: 'bill', cn: '账单', phonetic: '/bɪl/' },
+    { en: 'tip', cn: '小费', phonetic: '/tɪp/' },
+    { en: 'subway', cn: '地铁', phonetic: '/ˈsʌb.weɪ/' },
+    { en: 'taxi', cn: '出租车', phonetic: '/ˈtæk.si/' },
+    { en: 'train', cn: '火车', phonetic: '/treɪn/' },
+    { en: 'bus', cn: '公交车', phonetic: '/bʌs/' },
+    { en: 'ferry', cn: '渡轮', phonetic: '/ˈfer.i/' },
+    { en: 'platform', cn: '站台', phonetic: '/ˈplæt.fɔːrm/' },
+    { en: 'gate', cn: '登机口', phonetic: '/ɡeɪt/' },
+  ],
+
+  // ---- 日常生活（高频实用）----
+  daily: [
+    { en: 'weather', cn: '天气', phonetic: '/ˈweð.ər/' },
+    { en: 'temperature', cn: '温度', phonetic: '/ˈtem.prə.tʃər/' },
+    { en: 'umbrella', cn: '雨伞', phonetic: '/ʌmˈbrel.ə/' },
+    { en: 'newspaper', cn: '报纸', phonetic: '/ˈnuːz.peɪ.pər/' },
+    { en: 'magazine', cn: '杂志', phonetic: '/ˈmæɡ.ə.ziːn/' },
+    { en: 'television', cn: '电视', phonetic: '/ˈtel.ɪ.vɪʒ.ən/' },
+    { en: 'internet', cn: '互联网', phonetic: '/ˈɪn.tər.net/' },
+    { en: 'computer', cn: '电脑', phonetic: '/kəmˈpjuː.tər/' },
+    { en: 'mobile phone', cn: '手机', phonetic: '' },
+    { en: 'bank', cn: '银行', phonetic: '/bæŋk/' },
+    { en: 'post office', cn: '邮局', phonetic: '' },
+    { en: 'stamp', cn: '邮票', phonetic: '/stæmp/' },
+    { en: 'supermarket', cn: '超市', phonetic: '/ˈsuː.pər.mɑːr.kɪt/' },
+    { en: 'pharmacy', cn: '药店', phonetic: '/ˈfɑːr.mə.si/' },
+    { en: 'hospital', cn: '医院', phonetic: '/ˈhɒs.pɪ.təl/' },
+    { en: 'dentist', cn: '牙医', phonetic: '/ˈden.tɪst/' },
+    { en: 'medicine', cn: '药', phonetic: '/ˈmed.ɪ.sɪn/' },
+    { en: 'appointment', cn: '预约', phonetic: '/əˈpɔɪnt.mənt/' },
+    { en: 'barber', cn: '理发师', phonetic: '/ˈbɑːr.bər/' },
+    { en: 'laundry', cn: '洗衣店', phonetic: '/ˈlɔːn.dri/' },
+    { en: 'gym', cn: '健身房', phonetic: '/dʒɪm/' },
+    { en: 'library', cn: '图书馆', phonetic: '/ˈlaɪ.brer.i/' },
+    { en: 'repair', cn: '修理', phonetic: '/rɪˈper/' },
+    { en: 'address', cn: '地址', phonetic: '/əˈdres/' },
+    { en: 'battery', cn: '电池', phonetic: '/ˈbæt.ər.i/' },
+    { en: 'receipt', cn: '收据', phonetic: '/rɪˈsiːt/' },
+    { en: 'discount', cn: '折扣', phonetic: '/ˈdɪs.kaʊnt/' },
+    { en: 'size', cn: '尺码', phonetic: '/saɪz/' },
+    { en: 'color', cn: '颜色', phonetic: '/ˈkʌl.ər/' },
+    { en: 'price', cn: '价格', phonetic: '/praɪs/' },
+    { en: 'change', cn: '找零', phonetic: '/tʃeɪndʒ/' },
+    { en: 'wallet', cn: '钱包', phonetic: '/ˈwɒl.ɪt/' },
+    { en: 'key', cn: '钥匙', phonetic: '/kiː/' },
+    { en: 'umbrella', cn: '雨伞', phonetic: '/ʌmˈbrel.ə/' },
+    { en: 'neighbor', cn: '邻居', phonetic: '/ˈneɪ.bər/' },
+    { en: 'landlord', cn: '房东', phonetic: '/ˈlænd.lɔːrd/' },
+    { en: 'rent', cn: '房租', phonetic: '/rent/' },
+    { en: 'elevator', cn: '电梯', phonetic: '/ˈel.ɪ.veɪ.tər/' },
+    { en: 'stairs', cn: '楼梯', phonetic: '/sterz/' },
+    { en: 'garbage', cn: '垃圾', phonetic: '/ˈɡɑːr.bɪdʒ/' },
+  ],
 };
 
 // ---------- 工具函数 ----------
@@ -698,16 +800,14 @@ let knownCount = 0;
 let results = [];
 
 function init() {
-  // 年级切换
   document.querySelectorAll('.grade-selector button').forEach(btn => {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.grade-selector button').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
-      currentGrade = parseInt(this.dataset.grade);
+      currentGrade = this.dataset.grade;
       startGame();
     });
   });
-  // 默认选中一年级
   document.querySelector('.grade-selector button[data-grade="1"]').classList.add('active');
   startGame();
 }
@@ -843,7 +943,7 @@ function tryPlayAudio(text, fallback) {
 }
 
 function updateProgress() {
-  const total = todayWords.length || 10;
+  const total = todayWords.length || 20;
   const pct = Math.min((currentIndex / total) * 100, 100);
   document.getElementById('progressBar').style.width = pct + '%';
   document.getElementById('progressText').textContent = `${Math.min(currentIndex, total)}/${total}`;

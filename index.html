@@ -806,26 +806,26 @@ function renderCard(index) {
 }
 
 function speak(text) {
-  if (window.speechSynthesis) {
-    try {
-      window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = 0.85;
-      u.onerror = function(e) {
-        console.log('SpeechSynthesis error, trying audio fallback', e);
-        tryPlayAudio(text);
-      };
-      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-      window.speechSynthesis.speak(u);
-      return;
-    } catch(e) {
-      console.log('SpeechSynthesis exception, trying audio fallback', e);
+  // 先用音频方式（兼容性好，支持所有浏览器）
+  // 如果音频失败再用 speechSynthesis 兜底
+  tryPlayAudio(text, function() {
+    if (window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.85;
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        window.speechSynthesis.speak(u);
+        // Android 需要额外 resume
+        if (navigator.userAgent.indexOf('Android') !== -1) {
+          window.speechSynthesis.resume();
+        }
+      } catch(e) {}
     }
-  }
-  tryPlayAudio(text);
+  });
 }
-function tryPlayAudio(text) {
+function tryPlayAudio(text, fallback) {
   var audio = document.getElementById('ttsAudio');
   if (!audio) {
     audio = document.createElement('audio');
@@ -837,7 +837,7 @@ function tryPlayAudio(text) {
   audio.play().catch(function() {
     audio.src = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=' + encodeURIComponent(text);
     audio.play().catch(function(e) {
-      console.log('所有发音方式均失败', e);
+      if (fallback) fallback();
     });
   });
 }

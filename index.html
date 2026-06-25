@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>每日英语单词 - 五四学制</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+  }
+  .container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 16px 16px 40px;
+  }
+  header {
+    text-align: center;
+    padding: 16px 0 6px;
+    color: #fff;
+  }
+  header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  header .date {
+    font-size: 14px;
+    opacity: 0.85;
+    margin-top: 4px;
+  }
+  header .subtitle {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+  .grade-selector {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 12px 0 8px;
+    flex-wrap: wrap;
+  }
+  .grade-selector button {
+    padding: 6px 16px;
+    border: 2px solid rgba(255,255,255,0.5);
+    border-radius: 20px;
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .grade-selector button:hover {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  .grade-selector button.active {
+    background: #fff;
+    color: #667eea;
+    border-color: #fff;
+  }
+  .progress-section {
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin: 12px 0;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .progress-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+    margin: 0 12px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #ffd700;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .progress-text {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .card-area {
+    position: relative;
+    min-height: 300px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 36px 24px 24px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .card.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .word-number {
+    font-size: 14px;
+    color: #999;
+    margin-bottom: 16px;
+  }
+  .word-english {
+    font-size: 40px;
+    font-weight: 700;
+    color: #333;
+    margin: 16px 0;
+    letter-spacing: 1px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .word-phonetic {
+    font-size: 16px;
+    color: #999;
+    margin-bottom: 6px;
+  }
+  .word-chinese {
+    font-size: 28px;
+    font-weight: 600;
+    color: #667eea;
+    margin: 14px 0 6px;
+    min-height: 40px;
+    transition: opacity 0.3s;
+  }
+  .word-chinese.hidden { opacity: 0; }
+  .word-chinese:not(.hidden) { opacity: 1; }
+  .hint-text {
+    font-size: 13px;
+    color: #bbb;
+    margin-top: 6px;
+  }
+  .btn-sound {
+    display: inline-block;
+    background: #f0f0f5;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    line-height: 48px;
+    font-size: 22px;
+    cursor: pointer;
+    margin: 8px 0;
+    transition: background 0.2s;
+  }
+  .btn-sound:hover { background: #e0e0eb; }
+  .btn-sound:active { transform: scale(0.95); }
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+  .actions button {
+    flex: 1;
+    max-width: 160px;
+    padding: 14px 0;
+    border: none;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .actions button:active { transform: scale(0.96); }
+  .btn-know { background: #52c41a; color: #fff; }
+  .btn-dunno { background: #ff4d4f; color: #fff; }
+  .btn-know:disabled, .btn-dunno:disabled { opacity: 0.4; cursor: not-allowed; }
+  .result-section {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    display: none;
+  }
+  .result-section.active { display: block; animation: fadeIn 0.3s ease; }
+  .result-section h2 { font-size: 22px; margin-bottom: 6px; }
+  .result-emoji { font-size: 48px; margin-bottom: 6px; }
+  .result-score { font-size: 44px; font-weight: 700; color: #667eea; }
+  .result-detail { margin-top: 16px; text-align: left; max-height: 300px; overflow-y: auto; }
+  .result-word {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 15px;
+  }
+  .result-word .en { font-weight: 600; }
+  .result-word .cn { color: #999; }
+  .result-word .status { font-size: 18px; }
+  .btn-reset {
+    margin-top: 16px;
+    padding: 12px 32px;
+    border: 2px solid #667eea;
+    border-radius: 14px;
+    background: #fff;
+    color: #667eea;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-reset:hover { background: #667eea; color: #fff; }
+  .footer {
+    text-align: center;
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    margin-top: 16px;
+  }
+  .empty-state {
+    background: #fff;
+    border-radius: 20px;
+    padding: 40px 24px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { color: #999; font-size: 15px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📖 每日英语单词</h1>
+    <div class="date" id="dateDisplay"></div>
+    <div class="subtitle">五四学制 · 新教材版</div>
+  </header>
+
+  <div class="grade-selector" id="gradeSelector">
+    <button data-grade="1">一年级</button>
+    <button data-grade="2">二年级</button>
+    <button data-grade="3">三年级</button>
+    <button data-grade="4">四年级</button>
+    <button data-grade="5">五年级</button>
+  </div>
+
+  <div class="progress-section">
+    <span>⭐ 进度</span>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <span class="progress-text" id="progressText">0/20</span>
+  </div>
+
+  <div class="card-area" id="cardArea">
+  </div>
+
+  <div class="result-section" id="resultSection">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <h2 id="resultTitle">完成！</h2>
+    <div class="result-score" id="resultScore">0</div>
+    <div style="font-size:14px;color:#999;margin-bottom:12px;">个单词已掌握</div>
+    <div class="result-detail" id="resultDetail"></div>
+    <button class="btn-reset" onclick="location.reload()">🔄 重新开始</button>
+  </div>
+
+  <div class="footer">每天 20 个单词，积少成多 ✨</div>
+</div>
+
+<script>
+// ===== 五四学制新教材版 词库（鲁教版五四制 · 小学1-5年级）=====
+const WORDS_BY_GRADE = {
+  // ---- 一年级（基础认知：问候、文具、颜色、数字、家庭、身体、动物）----
+  1: [
+    { en: 'hello', cn: '你好', phonetic: '/həˈloʊ/' },
+    { en: 'hi', cn: '嗨', phonetic: '/haɪ/' },
+    { en: 'goodbye', cn: '再见', phonetic: '/ɡʊdˈbaɪ/' },
+    { en: 'bye', cn: '再见', phonetic: '/baɪ/' },
+    { en: 'good', cn: '好的', phonetic: '/ɡʊd/' },
+    { en: 'morning', cn: '早上', phonetic: '/ˈmɔːr.nɪŋ/' },
+    { en: 'afternoon', cn: '下午', phonetic: '/ˌæf.tərˈnuːn/' },
+    { en: 'evening', cn: '傍晚', phonetic: '/ˈiːv.nɪŋ/' },
+    { en: 'I', cn: '我', phonetic: '/aɪ/' },
+    { en: 'you', cn: '你；你们', phonetic: '/juː/' },
+    { en: 'my', cn: '我的', phonetic: '/maɪ/' },
+    { en: 'your', cn: '你的；你们的', phonetic: '/jɔːr/' },
+    { en: 'yes', cn: '是的', phonetic: '/jes/' },
+    { en: 'no', cn: '不；不是', phonetic: '/noʊ/' },
+    { en: 'please', cn: '请', phonetic: '/pliːz/' },
+    { en: 'thank', cn: '谢谢', phonetic: '/θæŋk/' },
+    { en: 'sorry', cn: '对不起', phonetic: '/ˈsɒr.i/' },
+    { en: 'book', cn: '书', phonetic: '/bʊk/' },
+    { en: 'pen', cn: '钢笔', phonetic: '/pen/' },
+    { en: 'pencil', cn: '铅笔', phonetic: '/ˈpen.sɪl/' },
+    { en: 'ruler', cn: '尺子', phonetic: '/ˈruː.lər/' },
+    { en: 'eraser', cn: '橡皮', phonetic: '/ɪˈreɪ.zər/' },
+    { en: 'bag', cn: '书包', phonetic: '/bæɡ/' },
+    { en: 'school', cn: '学校', phonetic: '/skuːl/' },
+    { en: 'red', cn: '红色', phonetic: '/red/' },
+    { en: 'blue', cn: '蓝色', phonetic: '/bluː/' },
+    { en: 'green', cn: '绿色', phonetic: '/ɡriːn/' },
+    { en: 'yellow', cn: '黄色', phonetic: '/ˈjel.oʊ/' },
+    { en: 'white', cn: '白色', phonetic: '/waɪt/' },
+    { en: 'black', cn: '黑色', phonetic: '/blæk/' },
+    { en: 'one', cn: '一', phonetic: '/wʌn/' },
+    { en: 'two', cn: '二', phonetic: '/tuː/' },
+    { en: 'three', cn: '三', phonetic: '/θriː/' },
+    { en: 'four', cn: '四', phonetic: '/fɔːr/' },
+    { en: 'five', cn: '五', phonetic: '/faɪv/' },
+    { en: 'six', cn: '六', phonetic: '/sɪks/' },
+    { en: 'seven', cn: '七', phonetic: '/ˈsev.ən/' },
+    { en: 'eight', cn: '八', phonetic: '/eɪt/' },
+    { en: 'nine', cn: '九', phonetic: '/naɪn/' },
+    { en: 'ten', cn: '十', phonetic: '/ten/' },
+    { en: 'father', cn: '爸爸', phonetic: '/ˈfɑː.ðər/' },
+    { en: 'mother', cn: '妈妈', phonetic: '/ˈmʌð.ər/' },
+    { en: 'brother', cn: '兄弟', phonetic: '/ˈbrʌð.ər/' },
+    { en: 'sister', cn: '姐妹', phonetic: '/ˈsɪs.tər/' },
+    { en: 'baby', cn: '婴儿', phonetic: '/ˈbeɪ.bi/' },
+    { en: 'eye', cn: '眼睛', phonetic: '/aɪ/' },
+    { en: 'ear', cn: '耳朵', phonetic: '/ɪr/' },
+    { en: 'nose', cn: '鼻子', phonetic: '/noʊz/' },
+    { en: 'mouth', cn: '嘴巴', phonetic: '/maʊθ/' },
+    { en: 'face', cn: '脸', phonetic: '/feɪs/' },
+    { en: 'head', cn: '头', phonetic: '/hed/' },
+    { en: 'hand', cn: '手', phonetic: '/hænd/' },
+    { en: 'foot', cn: '脚', phonetic: '/fʊt/' },
+    { en: 'cat', cn: '猫', phonetic: '/kæt/' },
+    { en: 'dog', cn: '狗', phonetic: '/dɒɡ/' },
+    { en: 'bird', cn: '鸟', phonetic: '/bɜːrd/' },
+    { en: 'fish', cn: '鱼', phonetic: '/fɪʃ/' },
+    { en: 'rabbit', cn: '兔子', phonetic: '/ˈræb.ɪt/' },
+    { en: 'duck', cn: '鸭子', phonetic: '/dʌk/' },
+    { en: 'pig', cn: '猪', phonetic: '/pɪɡ/' },
+    { en: 'chicken', cn: '鸡', phonetic: '/ˈtʃɪk.ɪn/' },
+    { en: 'apple', cn: '苹果', phonetic: '/ˈæp.l/' },
+    { en: 'banana', cn: '香蕉', phonetic: '/bəˈnæn.ə/' },
+    { en: 'orange', cn: '橙子', phonetic: '/ˈɒr.ɪndʒ/' },
+    { en: 'pear', cn: '梨', phonetic: '/per/' },
+  ],
+
+  // ---- 二年级（扩展：动物、形容词、天气、衣服、玩具、食物、星期）----
+  2: [
+    { en: 'monkey', cn: '猴子', phonetic: '/ˈmʌŋ.ki/' },
+    { en: 'tiger', cn: '老虎', phonetic: '/ˈtaɪ.ɡər/' },
+    { en: 'elephant', cn: '大象', phonetic: '/ˈel.ɪ.fənt/' },
+    { en: 'panda', cn: '熊猫', phonetic: '/ˈpæn.də/' },
+    { en: 'bear', cn: '熊', phonetic: '/ber/' },
+    { en: 'lion', cn: '狮子', phonetic: '/ˈlaɪ.ən/' },
+    { en: 'fox', cn: '狐狸', phonetic: '/fɒks/' },
+    { en: 'frog', cn: '青蛙', phonetic: '/frɒɡ/' },
+    { en: 'horse', cn: '马', phonetic: '/hɔːrs/' },
+    { en: 'sheep', cn: '绵羊', phonetic: '/ʃiːp/' },
+    { en: 'cow', cn: '奶牛', phonetic: '/kaʊ/' },
+    { en: 'big', cn: '大的', phonetic: '/bɪɡ/' },
+    { en: 'small', cn: '小的', phonetic: '/smɔːl/' },
+    { en: 'long', cn: '长的', phonetic: '/lɔːŋ/' },
+    { en: 'short', cn: '短的；矮的', phonetic: '/ʃɔːrt/' },
+    { en: 'tall', cn: '高的', phonetic: '/tɔːl/' },
+    { en: 'fat', cn: '胖的', phonetic: '/fæt/' },
+    { en: 'thin', cn: '瘦的', phonetic: '/θɪn/' },
+    { en: 'new', cn: '新的', phonetic: '/njuː/' },
+    { en: 'old', cn: '旧的；老的', phonetic: '/oʊld/' },
+    { en: 'happy', cn: '快乐的', phonetic: '/ˈhæp.i/' },
+    { en: 'sad', cn: '伤心的', phonetic: '/sæd/' },
+    { en: 'angry', cn: '生气的', phonetic: '/ˈæŋ.ɡri/' },
+    { en: 'tired', cn: '累的', phonetic: '/taɪərd/' },
+    { en: 'scared', cn: '害怕的', phonetic: '/skerd/' },
+    { en: 'hungry', cn: '饿的', phonetic: '/ˈhʌŋ.ɡri/' },
+    { en: 'thirsty', cn: '渴的', phonetic: '/ˈθɜːr.sti/' },
+    { en: 'sunny', cn: '晴朗的', phonetic: '/ˈsʌn.i/' },
+    { en: 'rainy', cn: '下雨的', phonetic: '/ˈreɪ.ni/' },
+    { en: 'cloudy', cn: '多云的', phonetic: '/ˈklaʊ.di/' },
+    { en: 'windy', cn: '有风的', phonetic: '/ˈwɪn.di/' },
+    { en: 'snowy', cn: '下雪的', phonetic: '/ˈsnoʊ.i/' },
+    { en: 'hot', cn: '热的', phonetic: '/hɒt/' },
+    { en: 'cold', cn: '冷的', phonetic: '/koʊld/' },
+    { en: 'warm', cn: '温暖的', phonetic: '/wɔːrm/' },
+    { en: 'cool', cn: '凉爽的', phonetic: '/kuːl/' },
+    { en: 'shirt', cn: '衬衫', phonetic: '/ʃɜːrt/' },
+    { en: 'T-shirt', cn: 'T恤', phonetic: '/ˈtiː.ʃɜːrt/' },
+    { en: 'dress', cn: '连衣裙', phonetic: '/dres/' },
+    { en: 'skirt', cn: '裙子', phonetic: '/skɜːrt/' },
+    { en: 'coat', cn: '外套', phonetic: '/koʊt/' },
+    { en: 'sweater', cn: '毛衣', phonetic: '/ˈswet.ər/' },
+    { en: 'shoe', cn: '鞋', phonetic: '/ʃuː/' },
+    { en: 'hat', cn: '帽子', phonetic: '/hæt/' },
+    { en: 'sock', cn: '袜子', phonetic: '/sɒk/' },
+    { en: 'pants', cn: '裤子', phonetic: '/pænts/' },
+    { en: 'toy', cn: '玩具', phonetic: '/tɔɪ/' },
+    { en: 'doll', cn: '洋娃娃', phonetic: '/dɒl/' },
+    { en: 'ball', cn: '球', phonetic: '/bɔːl/' },
+    { en: 'kite', cn: '风筝', phonetic: '/kaɪt/' },
+    { en: 'car', cn: '小汽车', phonetic: '/kɑːr/' },
+    { en: 'bike', cn: '自行车', phonetic: '/baɪk/' },
+    { en: 'juice', cn: '果汁', phonetic: '/dʒuːs/' },
+    { en: 'milk', cn: '牛奶', phonetic: '/mɪlk/' },
+    { en: 'water', cn: '水', phonetic: '/ˈwɔː.tər/' },
+    { en: 'tea', cn: '茶', phonetic: '/tiː/' },
+    { en: 'rice', cn: '米饭', phonetic: '/raɪs/' },
+    { en: 'noodle', cn: '面条', phonetic: '/ˈnuː.dəl/' },
+    { en: 'bread', cn: '面包', phonetic: '/bred/' },
+    { en: 'egg', cn: '鸡蛋', phonetic: '/eɡ/' },
+    { en: 'cake', cn: '蛋糕', phonetic: '/keɪk/' },
+    { en: 'candy', cn: '糖果', phonetic: '/ˈkæn.di/' },
+    { en: 'cookie', cn: '饼干', phonetic: '/ˈkʊk.i/' },
+    { en: 'Monday', cn: '星期一', phonetic: '/ˈmʌn.deɪ/' },
+    { en: 'Tuesday', cn: '星期二', phonetic: '/ˈtuːz.deɪ/' },
+    { en: 'Wednesday', cn: '星期三', phonetic: '/ˈwenz.deɪ/' },
+    { en: 'Thursday', cn: '星期四', phonetic: '/ˈθɜːrz.deɪ/' },
+    { en: 'Friday', cn: '星期五', phonetic: '/ˈfraɪ.deɪ/' },
+    { en: 'Saturday', cn: '星期六', phonetic: '/ˈsæt.ər.deɪ/' },
+    { en: 'Sunday', cn: '星期日', phonetic: '/ˈsʌn.deɪ/' },
+  ],
+
+  // ---- 三年级（日常：家庭、房间、食物、学科、动作、季节、月份）----
+  3: [
+    { en: 'grandpa', cn: '爷爷；外公', phonetic: '/ˈɡræn.pɑː/' },
+    { en: 'grandma', cn: '奶奶；外婆', phonetic: '/ˈɡræn.mɑː/' },
+    { en: 'uncle', cn: '叔叔；舅舅', phonetic: '/ˈʌŋ.kəl/' },
+    { en: 'aunt', cn: '阿姨；姑姑', phonetic: '/ænt/' },
+    { en: 'cousin', cn: '堂兄妹；表兄妹', phonetic: '/ˈkʌz.ən/' },
+    { en: 'friend', cn: '朋友', phonetic: '/frend/' },
+    { en: 'family', cn: '家庭', phonetic: '/ˈfæm.ə.li/' },
+    { en: 'table', cn: '桌子', phonetic: '/ˈteɪ.bəl/' },
+    { en: 'chair', cn: '椅子', phonetic: '/tʃer/' },
+    { en: 'desk', cn: '书桌', phonetic: '/desk/' },
+    { en: 'bed', cn: '床', phonetic: '/bed/' },
+    { en: 'door', cn: '门', phonetic: '/dɔːr/' },
+    { en: 'window', cn: '窗户', phonetic: '/ˈwɪn.doʊ/' },
+    { en: 'room', cn: '房间', phonetic: '/ruːm/' },
+    { en: 'home', cn: '家', phonetic: '/hoʊm/' },
+    { en: 'kitchen', cn: '厨房', phonetic: '/ˈkɪtʃ.ɪn/' },
+    { en: 'bedroom', cn: '卧室', phonetic: '/ˈbed.ruːm/' },
+    { en: 'bathroom', cn: '浴室', phonetic: '/ˈbæθ.ruːm/' },
+    { en: 'garden', cn: '花园', phonetic: '/ˈɡɑːr.dən/' },
+    { en: 'breakfast', cn: '早餐', phonetic: '/ˈbrek.fəst/' },
+    { en: 'lunch', cn: '午餐', phonetic: '/lʌntʃ/' },
+    { en: 'dinner', cn: '晚餐', phonetic: '/ˈdɪn.ər/' },
+    { en: 'vegetable', cn: '蔬菜', phonetic: '/ˈvedʒ.tə.bəl/' },
+    { en: 'fruit', cn: '水果', phonetic: '/fruːt/' },
+    { en: 'chicken', cn: '鸡肉', phonetic: '/ˈtʃɪk.ɪn/' },
+    { en: 'fish', cn: '鱼；鱼肉', phonetic: '/fɪʃ/' },
+    { en: 'meat', cn: '肉', phonetic: '/miːt/' },
+    { en: 'soup', cn: '汤', phonetic: '/suːp/' },
+    { en: 'salad', cn: '沙拉', phonetic: '/ˈsæl.əd/' },
+    { en: 'math', cn: '数学', phonetic: '/mæθ/' },
+    { en: 'English', cn: '英语', phonetic: '/ˈɪŋ.ɡlɪʃ/' },
+    { en: 'Chinese', cn: '语文', phonetic: '/ˌtʃaɪˈniːz/' },
+    { en: 'science', cn: '科学', phonetic: '/ˈsaɪ.əns/' },
+    { en: 'music', cn: '音乐', phonetic: '/ˈmjuː.zɪk/' },
+    { en: 'art', cn: '美术', phonetic: '/ɑːrt/' },
+    { en: 'PE', cn: '体育', phonetic: '/ˌpiː ˈiː/' },
+    { en: 'play', cn: '玩', phonetic: '/pleɪ/' },
+    { en: 'run', cn: '跑', phonetic: '/rʌn/' },
+    { en: 'jump', cn: '跳', phonetic: '/dʒʌmp/' },
+    { en: 'walk', cn: '走；散步', phonetic: '/wɔːk/' },
+    { en: 'swim', cn: '游泳', phonetic: '/swɪm/' },
+    { en: 'sing', cn: '唱歌', phonetic: '/sɪŋ/' },
+    { en: 'dance', cn: '跳舞', phonetic: '/dæns/' },
+    { en: 'read', cn: '阅读', phonetic: '/riːd/' },
+    { en: 'write', cn: '写', phonetic: '/raɪt/' },
+    { en: 'draw', cn: '画画', phonetic: '/drɔː/' },
+    { en: 'eat', cn: '吃', phonetic: '/iːt/' },
+    { en: 'drink', cn: '喝', phonetic: '/drɪŋk/' },
+    { en: 'sleep', cn: '睡觉', phonetic: '/sliːp/' },
+    { en: 'wash', cn: '洗', phonetic: '/wɒʃ/' },
+    { en: 'clean', cn: '打扫', phonetic: '/kliːn/' },
+    { en: 'cook', cn: '做饭', phonetic: '/kʊk/' },
+    { en: 'help', cn: '帮助', phonetic: '/help/' },
+    { en: 'spring', cn: '春天', phonetic: '/sprɪŋ/' },
+    { en: 'summer', cn: '夏天', phonetic: '/ˈsʌm.ər/' },
+    { en: 'autumn', cn: '秋天', phonetic: '/ˈɔː.təm/' },
+    { en: 'winter', cn: '冬天', phonetic: '/ˈwɪn.tər/' },
+    { en: 'season', cn: '季节', phonetic: '/ˈsiː.zən/' },
+    { en: 'January', cn: '一月', phonetic: '/ˈdʒæn.ju.er.i/' },
+    { en: 'February', cn: '二月', phonetic: '/ˈfeb.ru.er.i/' },
+    { en: 'March', cn: '三月', phonetic: '/mɑːrtʃ/' },
+    { en: 'April', cn: '四月', phonetic: '/ˈeɪ.prəl/' },
+    { en: 'May', cn: '五月', phonetic: '/meɪ/' },
+    { en: 'June', cn: '六月', phonetic: '/dʒuːn/' },
+    { en: 'July', cn: '七月', phonetic: '/dʒuˈlaɪ/' },
+    { en: 'August', cn: '八月', phonetic: '/ɔːˈɡʌst/' },
+    { en: 'September', cn: '九月', phonetic: '/sepˈtem.bər/' },
+    { en: 'October', cn: '十月', phonetic: '/ɒkˈtoʊ.bər/' },
+    { en: 'November', cn: '十一月', phonetic: '/noʊˈvem.bər/' },
+    { en: 'December', cn: '十二月', phonetic: '/dɪˈsem.bər/' },
+    { en: 'today', cn: '今天', phonetic: '/təˈdeɪ/' },
+    { en: 'tomorrow', cn: '明天', phonetic: '/təˈmɔː.roʊ/' },
+    { en: 'yesterday', cn: '昨天', phonetic: '/ˈjes.tər.deɪ/' },
+    { en: 'week', cn: '星期', phonetic: '/wiːk/' },
+    { en: 'month', cn: '月份', phonetic: '/mʌnθ/' },
+    { en: 'year', cn: '年', phonetic: '/jɪr/' },
+    { en: 'park', cn: '公园', phonetic: '/pɑːrk/' },
+    { en: 'zoo', cn: '动物园', phonetic: '/zuː/' },
+    { en: 'library', cn: '图书馆', phonetic: '/ˈlaɪ.brer.i/' },
+    { en: 'shop', cn: '商店', phonetic: '/ʃɒp/' },
+    { en: 'hospital', cn: '医院', phonetic: '/ˈhɒs.pɪ.təl/' },
+  ],
+
+  // ---- 四年级（扩展：方位、职业、交通、感受、比较、过去式、数字11-100）----
+  4: [
+    { en: 'classroom', cn: '教室', phonetic: '/ˈklæs.ruːm/' },
+    { en: 'playground', cn: '操场', phonetic: '/ˈpleɪ.ɡraʊnd/' },
+    { en: 'teacher', cn: '老师', phonetic: '/ˈtiː.tʃər/' },
+    { en: 'student', cn: '学生', phonetic: '/ˈstuː.dənt/' },
+    { en: 'homework', cn: '家庭作业', phonetic: '/ˈhoʊm.wɜːrk/' },
+    { en: 'story', cn: '故事', phonetic: '/ˈstɔːr.i/' },
+    { en: 'computer', cn: '电脑', phonetic: '/kəmˈpjuː.tər/' },
+    { en: 'phone', cn: '电话', phonetic: '/foʊn/' },
+    { en: 'clock', cn: '时钟', phonetic: '/klɒk/' },
+    { en: 'left', cn: '左', phonetic: '/left/' },
+    { en: 'right', cn: '右', phonetic: '/raɪt/' },
+    { en: 'straight', cn: '笔直地', phonetic: '/streɪt/' },
+    { en: 'turn', cn: '转弯', phonetic: '/tɜːrn/' },
+    { en: 'near', cn: '附近', phonetic: '/nɪr/' },
+    { en: 'behind', cn: '在后面', phonetic: '/bɪˈhaɪnd/' },
+    { en: 'between', cn: '在中间', phonetic: '/bɪˈtwiːn/' },
+    { en: 'next', cn: '下一个；旁边', phonetic: '/nekst/' },
+    { en: 'doctor', cn: '医生', phonetic: '/ˈdɒk.tər/' },
+    { en: 'nurse', cn: '护士', phonetic: '/nɜːrs/' },
+    { en: 'driver', cn: '司机', phonetic: '/ˈdraɪ.vər/' },
+    { en: 'farmer', cn: '农民', phonetic: '/ˈfɑːr.mər/' },
+    { en: 'worker', cn: '工人', phonetic: '/ˈwɜːr.kər/' },
+    { en: 'singer', cn: '歌手', phonetic: '/ˈsɪŋ.ər/' },
+    { en: 'writer', cn: '作家', phonetic: '/ˈraɪ.tər/' },
+    { en: 'pilot', cn: '飞行员', phonetic: '/ˈpaɪ.lət/' },
+    { en: 'police', cn: '警察', phonetic: '/pəˈliːs/' },
+    { en: 'bus', cn: '公共汽车', phonetic: '/bʌs/' },
+    { en: 'train', cn: '火车', phonetic: '/treɪn/' },
+    { en: 'plane', cn: '飞机', phonetic: '/pleɪn/' },
+    { en: 'boat', cn: '小船', phonetic: '/boʊt/' },
+    { en: 'ship', cn: '轮船', phonetic: '/ʃɪp/' },
+    { en: 'eleven', cn: '十一', phonetic: '/ɪˈlev.ən/' },
+    { en: 'twelve', cn: '十二', phonetic: '/twelv/' },
+    { en: 'thirteen', cn: '十三', phonetic: '/ˌθɜːrˈtiːn/' },
+    { en: 'fifteen', cn: '十五', phonetic: '/ˌfɪfˈtiːn/' },
+    { en: 'twenty', cn: '二十', phonetic: '/ˈtwen.ti/' },
+    { en: 'thirty', cn: '三十', phonetic: '/ˈθɜːr.ti/' },
+    { en: 'hundred', cn: '一百', phonetic: '/ˈhʌn.drəd/' },
+    { en: 'happy', cn: '快乐的', phonetic: '/ˈhæp.i/' },
+    { en: 'excited', cn: '兴奋的', phonetic: '/ɪkˈsaɪ.tɪd/' },
+    { en: 'bored', cn: '无聊的', phonetic: '/bɔːrd/' },
+    { en: 'worried', cn: '担心的', phonetic: '/ˈwʌr.id/' },
+    { en: 'afraid', cn: '害怕的', phonetic: '/əˈfreɪd/' },
+    { en: 'more', cn: '更多', phonetic: '/mɔːr/' },
+    { en: 'better', cn: '更好的', phonetic: '/ˈbet.ər/' },
+    { en: 'best', cn: '最好的', phonetic: '/best/' },
+    { en: 'than', cn: '比', phonetic: '/ðæn/' },
+    { en: 'taller', cn: '更高的', phonetic: '/ˈtɔː.lər/' },
+    { en: 'shorter', cn: '更矮的', phonetic: '/ˈʃɔːr.tər/' },
+    { en: 'stronger', cn: '更强壮的', phonetic: '/ˈstrɒŋ.ər/' },
+    { en: 'older', cn: '更年长的', phonetic: '/ˈoʊl.dər/' },
+    { en: 'younger', cn: '更年轻的', phonetic: '/ˈjʌŋ.ər/' },
+    { en: 'cleaned', cn: '打扫了', phonetic: '/kliːnd/' },
+    { en: 'washed', cn: '洗了', phonetic: '/wɒʃt/' },
+    { en: 'watched', cn: '看了', phonetic: '/wɒtʃt/' },
+    { en: 'visited', cn: '拜访了', phonetic: '/ˈvɪz.ɪ.tɪd/' },
+    { en: 'played', cn: '玩了', phonetic: '/pleɪd/' },
+    { en: 'walked', cn: '走了', phonetic: '/wɔːkt/' },
+    { en: 'climbed', cn: '爬了', phonetic: '/klaɪmd/' },
+    { en: 'studied', cn: '学习了', phonetic: '/ˈstʌd.id/' },
+    { en: 'cooked', cn: '做饭了', phonetic: '/kʊkt/' },
+    { en: 'helped', cn: '帮助了', phonetic: '/helpt/' },
+    { en: 'was', cn: '是（过去式）', phonetic: '/wɒz/' },
+    { en: 'were', cn: '是（过去式）', phonetic: '/wɜːr/' },
+    { en: 'had', cn: '有（过去式）', phonetic: '/hæd/' },
+    { en: 'said', cn: '说（过去式）', phonetic: '/sed/' },
+    { en: 'went', cn: '去（过去式）', phonetic: '/went/' },
+    { en: 'saw', cn: '看见（过去式）', phonetic: '/sɔː/' },
+    { en: 'ate', cn: '吃（过去式）', phonetic: '/eɪt/' },
+    { en: 'drank', cn: '喝（过去式）', phonetic: '/dræŋk/' },
+    { en: 'slept', cn: '睡觉（过去式）', phonetic: '/slept/' },
+    { en: 'bought', cn: '买（过去式）', phonetic: '/bɔːt/' },
+  ],
+
+  // ---- 五年级（综合：旅行、健康、计划、环境、观点、高频词）----
+  5: [
+    { en: 'holiday', cn: '假日', phonetic: '/ˈhɒl.ɪ.deɪ/' },
+    { en: 'vacation', cn: '假期', phonetic: '/veɪˈkeɪ.ʃən/' },
+    { en: 'trip', cn: '旅行', phonetic: '/trɪp/' },
+    { en: 'travel', cn: '旅游', phonetic: '/ˈtræv.əl/' },
+    { en: 'hotel', cn: '酒店', phonetic: '/hoʊˈtel/' },
+    { en: 'beach', cn: '海滩', phonetic: '/biːtʃ/' },
+    { en: 'mountain', cn: '山', phonetic: '/ˈmaʊn.tɪn/' },
+    { en: 'river', cn: '河流', phonetic: '/ˈrɪv.ər/' },
+    { en: 'lake', cn: '湖', phonetic: '/leɪk/' },
+    { en: 'forest', cn: '森林', phonetic: '/ˈfɒr.ɪst/' },
+    { en: 'museum', cn: '博物馆', phonetic: '/mjuːˈziː.əm/' },
+    { en: 'cinema', cn: '电影院', phonetic: '/ˈsɪn.ə.mə/' },
+    { en: 'supermarket', cn: '超市', phonetic: '/ˈsuː.pər.mɑːr.kɪt/' },
+    { en: 'restaurant', cn: '餐厅', phonetic: '/ˈres.tər.ɒnt/' },
+    { en: 'enjoy', cn: '享受', phonetic: '/ɪnˈdʒɔɪ/' },
+    { en: 'stay', cn: '停留；住', phonetic: '/steɪ/' },
+    { en: 'visit', cn: '参观', phonetic: '/ˈvɪz.ɪt/' },
+    { en: 'take', cn: '拿；花费', phonetic: '/teɪk/' },
+    { en: 'make', cn: '做；制作', phonetic: '/meɪk/' },
+    { en: 'give', cn: '给', phonetic: '/ɡɪv/' },
+    { en: 'come', cn: '来', phonetic: '/kʌm/' },
+    { en: 'go', cn: '去', phonetic: '/ɡoʊ/' },
+    { en: 'know', cn: '知道', phonetic: '/noʊ/' },
+    { en: 'think', cn: '认为；想', phonetic: '/θɪŋk/' },
+    { en: 'want', cn: '想要', phonetic: '/wɒnt/' },
+    { en: 'need', cn: '需要', phonetic: '/niːd/' },
+    { en: 'like', cn: '喜欢', phonetic: '/laɪk/' },
+    { en: 'love', cn: '爱；喜欢', phonetic: '/lʌv/' },
+    { en: 'hope', cn: '希望', phonetic: '/hoʊp/' },
+    { en: 'feel', cn: '感觉', phonetic: '/fiːl/' },
+    { en: 'find', cn: '找到', phonetic: '/faɪnd/' },
+    { en: 'keep', cn: '保持', phonetic: '/kiːp/' },
+    { en: 'learn', cn: '学习', phonetic: '/lɜːrn/' },
+    { en: 'remember', cn: '记住', phonetic: '/rɪˈmem.bər/' },
+    { en: 'forget', cn: '忘记', phonetic: '/fərˈɡet/' },
+    { en: 'begin', cn: '开始', phonetic: '/bɪˈɡɪn/' },
+    { en: 'finish', cn: '完成', phonetic: '/ˈfɪn.ɪʃ/' },
+    { en: 'start', cn: '开始', phonetic: '/stɑːrt/' },
+    { en: 'often', cn: '经常', phonetic: '/ˈɒf.ən/' },
+    { en: 'always', cn: '总是', phonetic: '/ˈɔːl.weɪz/' },
+    { en: 'usually', cn: '通常', phonetic: '/ˈjuː.ʒu.ə.li/' },
+    { en: 'sometimes', cn: '有时', phonetic: '/ˈsʌm.taɪmz/' },
+    { en: 'never', cn: '从不', phonetic: '/ˈnev.ər/' },
+    { en: 'ever', cn: '曾经', phonetic: '/ˈev.ər/' },
+    { en: 'healthy', cn: '健康的', phonetic: '/ˈhel.θi/' },
+    { en: 'exercise', cn: '锻炼', phonetic: '/ˈek.sər.saɪz/' },
+    { en: 'body', cn: '身体', phonetic: '/ˈbɒd.i/' },
+    { en: 'energy', cn: '能量；精力', phonetic: '/ˈen.ər.dʒi/' },
+    { en: 'important', cn: '重要的', phonetic: '/ɪmˈpɔːr.tənt/' },
+    { en: 'special', cn: '特别的', phonetic: '/ˈspeʃ.əl/' },
+    { en: 'wonderful', cn: '精彩的', phonetic: '/ˈwʌn.dər.fəl/' },
+    { en: 'beautiful', cn: '美丽的', phonetic: '/ˈbjuː.tɪ.fəl/' },
+    { en: 'difficult', cn: '困难的', phonetic: '/ˈdɪf.ɪ.kəlt/' },
+    { en: 'easy', cn: '简单的', phonetic: '/ˈiː.zi/' },
+    { en: 'different', cn: '不同的', phonetic: '/ˈdɪf.ər.ənt/' },
+    { en: 'same', cn: '相同的', phonetic: '/seɪm/' },
+    { en: 'world', cn: '世界', phonetic: '/wɜːrld/' },
+    { en: 'country', cn: '国家', phonetic: '/ˈkʌn.tri/' },
+    { en: 'city', cn: '城市', phonetic: '/ˈsɪt.i/' },
+    { en: 'nature', cn: '自然', phonetic: '/ˈneɪ.tʃər/' },
+    { en: 'weather', cn: '天气', phonetic: '/ˈweð.ər/' },
+    { en: 'because', cn: '因为', phonetic: '/bɪˈkɒz/' },
+    { en: 'so', cn: '所以', phonetic: '/soʊ/' },
+    { en: 'but', cn: '但是', phonetic: '/bʌt/' },
+    { en: 'when', cn: '当……时', phonetic: '/wen/' },
+    { en: 'what', cn: '什么', phonetic: '/wɒt/' },
+    { en: 'where', cn: '哪里', phonetic: '/wer/' },
+    { en: 'why', cn: '为什么', phonetic: '/waɪ/' },
+    { en: 'how', cn: '怎样', phonetic: '/haʊ/' },
+    { en: 'which', cn: '哪一个', phonetic: '/wɪtʃ/' },
+    { en: 'who', cn: '谁', phonetic: '/huː/' },
+    { en: 'whose', cn: '谁的', phonetic: '/huːz/' },
+  ],
+};
+
+// ---------- 工具函数 ----------
+function getDateStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+function hashStr(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+function shuffle(arr, rand) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---------- 主逻辑 ----------
+let currentGrade = 1;
+let todayWords = [];
+let currentIndex = 0;
+let knownCount = 0;
+let results = [];
+
+function init() {
+  // 年级切换
+  document.querySelectorAll('.grade-selector button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.grade-selector button').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentGrade = parseInt(this.dataset.grade);
+      startGame();
+    });
+  });
+  // 默认选中一年级
+  document.querySelector('.grade-selector button[data-grade="1"]').classList.add('active');
+  startGame();
+}
+
+function startGame() {
+  const dateStr = getDateStr();
+  document.getElementById('dateDisplay').textContent = dateStr + '  ·  今天也要加油哦 💪';
+
+  const seed = hashStr(dateStr + '-grade' + currentGrade);
+  const rand = seededRandom(seed);
+
+  const words = WORDS_BY_GRADE[currentGrade] || [];
+
+  if (words.length === 0) {
+    document.getElementById('cardArea').innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📚</div>
+        <p>该年级暂未录入单词<br>请选择其他年级</p>
+      </div>
+    `;
+    document.getElementById('resultSection').classList.remove('active');
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressText').textContent = '0/20';
+    return;
+  }
+
+  // 去重
+  const unique = [];
+  const seen = new Set();
+  for (const w of words) {
+    const key = w.en.toLowerCase() + '|' + w.cn;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(w);
+    }
+  }
+
+  const count = Math.min(20, unique.length);
+  todayWords = shuffle(unique, rand).slice(0, count);
+  currentIndex = 0;
+  knownCount = 0;
+  results = todayWords.map(w => ({ en: w.en, cn: w.cn, known: false }));
+
+  document.getElementById('cardArea').style.display = 'block';
+  document.getElementById('resultSection').classList.remove('active');
+  renderCard(0);
+  updateProgress();
+}
+
+function renderCard(index) {
+  const area = document.getElementById('cardArea');
+  if (index >= todayWords.length) {
+    showResult();
+    return;
+  }
+  const w = todayWords[index];
+  area.innerHTML = `
+    <div class="card active">
+      <div class="word-number">第 ${index+1} / ${todayWords.length} 个</div>
+      <div class="word-english" id="wordEnglish">${w.en}</div>
+      <div class="word-phonetic">${w.phonetic || ''}</div>
+      <button class="btn-sound" id="btnSound">🔊</button>
+      <div class="word-chinese hidden" id="wordChinese">${w.cn}</div>
+      <div class="hint-text">👆 点击英文或点击喇叭听发音</div>
+      <div class="actions">
+        <button class="btn-know" id="btnKnow">😊 知道了</button>
+        <button class="btn-dunno" id="btnDunno">😅 不认识</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('wordEnglish').addEventListener('click', function() {
+    document.getElementById('wordChinese').classList.remove('hidden');
+    speak(todayWords[currentIndex].en);
+  });
+
+  document.getElementById('btnSound').addEventListener('click', function() {
+    speak(todayWords[currentIndex].en);
+  });
+
+  document.getElementById('btnKnow').addEventListener('click', function() {
+    results[currentIndex].known = true;
+    knownCount++;
+    currentIndex++;
+    renderCard(currentIndex);
+    updateProgress();
+  });
+
+  document.getElementById('btnDunno').addEventListener('click', function() {
+    results[currentIndex].known = false;
+    currentIndex++;
+    renderCard(currentIndex);
+    updateProgress();
+  });
+
+}
+
+function speak(text) {
+  if (window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.85;
+      u.onerror = function(e) {
+        console.log('SpeechSynthesis error, trying audio fallback', e);
+        tryPlayAudio(text);
+      };
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+      window.speechSynthesis.speak(u);
+      return;
+    } catch(e) {
+      console.log('SpeechSynthesis exception, trying audio fallback', e);
+    }
+  }
+  tryPlayAudio(text);
+}
+function tryPlayAudio(text) {
+  var audio = document.getElementById('ttsAudio');
+  if (!audio) {
+    audio = document.createElement('audio');
+    audio.id = 'ttsAudio';
+    audio.style.display = 'none';
+    document.body.appendChild(audio);
+  }
+  audio.src = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=0';
+  audio.play().catch(function() {
+    audio.src = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=' + encodeURIComponent(text);
+    audio.play().catch(function(e) {
+      console.log('所有发音方式均失败', e);
+    });
+  });
+}
+
+function updateProgress() {
+  const total = todayWords.length || 10;
+  const pct = Math.min((currentIndex / total) * 100, 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${Math.min(currentIndex, total)}/${total}`;
+}
+
+function showResult() {
+  document.getElementById('cardArea').style.display = 'none';
+  const section = document.getElementById('resultSection');
+  section.classList.add('active');
+
+  const score = knownCount;
+  const total = todayWords.length;
+  document.getElementById('resultScore').textContent = score;
+
+  if (score === total) {
+    document.getElementById('resultEmoji').textContent = '🎉🏆🎉';
+    document.getElementById('resultTitle').textContent = '太棒了！全部掌握！';
+  } else if (score >= Math.ceil(total * 0.7)) {
+    document.getElementById('resultEmoji').textContent = '🌟👏🌟';
+    document.getElementById('resultTitle').textContent = '做得好！继续加油！';
+  } else if (score >= Math.ceil(total * 0.5)) {
+    document.getElementById('resultEmoji').textContent = '💪😊💪';
+    document.getElementById('resultTitle').textContent = '还不错，多复习哦！';
+  } else {
+    document.getElementById('resultEmoji').textContent = '📖🤗📖';
+    document.getElementById('resultTitle').textContent = '没关系，明天再来！';
+  }
+
+  const detail = document.getElementById('resultDetail');
+  detail.innerHTML = results.map(r => `
+    <div class="result-word">
+      <span class="en">${r.en}</span>
+      <span class="cn">${r.cn}</span>
+      <span class="status">${r.known ? '✅' : '🔄'}</span>
+    </div>
+  `).join('');
+}
+
+init();
+</script>
+</body>
+</html>

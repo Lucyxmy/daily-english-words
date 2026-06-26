@@ -1180,18 +1180,29 @@ function renderReadCard(area, index, w) {
       '<div class="word-english">' + w.en + '</div>' +
       '<div class="word-phonetic">' + (w.phonetic || '') + '</div>' +
       '<div class="word-chinese" style="opacity:1">' + w.cn + '</div>' +
-      '<div class="mic-area">' +
-        '<button class="mic-btn" id="micBtn">🎤</button>' +
+      '<div class="actions" style="margin-top:6px">' +
+        '<button class="btn-sound" id="btnReadSound" style="flex:none;width:auto;padding:10px 20px;border-radius:14px">🔊 听发音</button>' +
       '</div>' +
-      '<div class="speech-status" id="speechStatus">🔊 正在播放发音...</div>' +
+      '<div class="mic-area">' +
+        '<button class="mic-btn" id="micBtn">🎤 点击跟读</button>' +
+      '</div>' +
+      '<div class="speech-status" id="speechStatus">点击麦克风开始跟读</div>' +
       '<div class="speech-result" id="speechResult"></div>' +
       '<div class="retry-area" id="retryArea"></div>' +
       srNote +
     '</div>';
 
-  // 先播放发音，播完后启动录音
+  if (!_recogAvailable) {
+    document.getElementById('micBtn').style.display = 'none';
+  }
+  document.getElementById('micBtn').addEventListener('click', function() {
+    startReadListen(index, w);
+  });
+  document.getElementById('btnReadSound').addEventListener('click', function() {
+    speak(w.en);
+  });
+  // 自动播放发音
   speak(w.en);
-  setTimeout(function() { startReadListen(index, w); }, 1200);
 }
 
 function startReadListen(index, w) {
@@ -1200,6 +1211,7 @@ function startReadListen(index, w) {
   var status = document.getElementById('speechStatus');
   if (!micBtn) return;
 
+  micBtn.textContent = '🎤';
   micBtn.classList.add('listening');
   status.textContent = '🎤 请跟读...';
 
@@ -1229,15 +1241,12 @@ function startReadListen(index, w) {
     function(reason) {
       if (index !== currentIndex) return;
       micBtn.classList.remove('listening');
+      micBtn.textContent = '🎤 点击跟读';
       if (reason === 'unsupported') {
         status.textContent = '⚠️ 当前浏览器不支持语音识别，请使用 Chrome';
         micBtn.style.display = 'none';
-      } else if (reason === 'timeout') {
-        status.textContent = '⏱️ 没听到声音，点击重试';
-        showRetryButtons(index, false, w.en);
-      } else if (reason === 'no-speech') {
-        status.textContent = '🔇 没听到声音，请重试';
-        showRetryButtons(index, false, w.en);
+      } else {
+        status.textContent = '🎤 点击重试';
       }
     }
   );
@@ -1253,10 +1262,10 @@ function retryRead(index) {
 
   micBtn.classList.remove('success', 'fail');
   micBtn.style.display = '';
-  micBtn.textContent = '🎤';
+  micBtn.textContent = '🎤 点击跟读';
+  status.textContent = '点击麦克风开始跟读';
   resultEl.textContent = '';
   retryArea.innerHTML = '';
-  startReadListen(index, todayWords[index]);
 }
 
 function advanceRead(index, known) {
@@ -1274,19 +1283,25 @@ function renderSpellCard(area, index, w) {
   area.innerHTML =
     '<div class="card active">' +
       '<div class="word-number">第 ' + (index+1) + ' / ' + todayWords.length + ' 个</div>' +
-      '<div class="word-english" id="spellEnglish" style="opacity:0.3;font-size:28px">点击下方🔍查看</div>' +
+      '<div class="word-english" id="spellEnglish" style="opacity:0.3;font-size:28px">点击🎤说出英文</div>' +
       '<div class="word-phonetic"></div>' +
       '<div class="word-chinese" style="opacity:1;font-size:32px">' + w.cn + '</div>' +
       '<div class="mic-area">' +
-        '<button class="mic-btn" id="micBtn">🎤</button>' +
+        '<button class="mic-btn" id="micBtn">🎤 说出英文</button>' +
       '</div>' +
-      '<div class="speech-status" id="speechStatus">🎤 说出对应的英文单词...</div>' +
+      '<div class="speech-status" id="speechStatus">点击麦克风说出对应的英文</div>' +
       '<div class="speech-result" id="speechResult"></div>' +
       '<div class="retry-area" id="retryArea"></div>' +
+      '<div class="hint-text" id="spellHint" style="font-size:12px;color:#bbb;margin-top:4px">💡 如果不会，点击🎤后会显示答案</div>' +
       srNote +
     '</div>';
 
-  setTimeout(function() { startSpellListen(index, w); }, 300);
+  if (!_recogAvailable) {
+    document.getElementById('micBtn').style.display = 'none';
+  }
+  document.getElementById('micBtn').addEventListener('click', function() {
+    startSpellListen(index, w);
+  });
 }
 
 function startSpellListen(index, w) {
@@ -1295,6 +1310,7 @@ function startSpellListen(index, w) {
   var status = document.getElementById('speechStatus');
   if (!micBtn) return;
 
+  micBtn.textContent = '🎤';
   micBtn.classList.add('listening');
   status.textContent = '🎤 请说出英文...';
 
@@ -1305,24 +1321,23 @@ function startSpellListen(index, w) {
       var retryArea = document.getElementById('retryArea');
       var resultEl = document.getElementById('speechResult');
       var engEl = document.getElementById('spellEnglish');
+      var hint = document.getElementById('spellHint');
+      if (hint) hint.style.display = 'none';
+      engEl.textContent = w.en;
+      engEl.style.opacity = '1';
+      engEl.style.fontSize = '40px';
 
       if (isWordMatch(texts, w.en)) {
         micBtn.classList.add('success');
         micBtn.textContent = '✅';
         status.textContent = '🎉 拼对了！';
         resultEl.textContent = '你读的: ' + texts[0];
-        engEl.textContent = w.en;
-        engEl.style.opacity = '1';
-        engEl.style.fontSize = '40px';
         retryArea.innerHTML = '<button class="btn-next-word" onclick="advanceRead(' + index + ',true)">➡️ 下一个</button>';
       } else {
         micBtn.classList.add('fail');
         micBtn.textContent = '🔄';
         status.textContent = '🤔 不对哦，再想想？';
         resultEl.textContent = '你读的: ' + texts[0];
-        engEl.textContent = w.en;
-        engEl.style.opacity = '1';
-        engEl.style.fontSize = '40px';
         retryArea.innerHTML =
           '<button class="btn-retry" onclick="retrySpell(' + index + ')">🔁 再试一次</button>' +
           '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 下一个</button>';
@@ -1331,15 +1346,12 @@ function startSpellListen(index, w) {
     function(reason) {
       if (index !== currentIndex) return;
       micBtn.classList.remove('listening');
+      micBtn.textContent = '🎤 说出英文';
       if (reason === 'unsupported') {
         status.textContent = '⚠️ 当前浏览器不支持语音识别，请使用 Chrome';
         micBtn.style.display = 'none';
-      } else if (reason === 'timeout') {
-        status.textContent = '⏱️ 没听到声音，点击重试';
-        showRetryButtons(index, true, w.en);
-      } else if (reason === 'no-speech') {
-        status.textContent = '🔇 没听到声音，请重试';
-        showRetryButtons(index, true, w.en);
+      } else {
+        status.textContent = '🎤 点击重试';
       }
     }
   );
@@ -1351,33 +1363,22 @@ function retrySpell(index) {
   var status = document.getElementById('speechStatus');
   var resultEl = document.getElementById('speechResult');
   var retryArea = document.getElementById('retryArea');
+  var engEl = document.getElementById('spellEnglish');
   if (!micBtn) return;
 
   micBtn.classList.remove('success', 'fail');
   micBtn.style.display = '';
-  micBtn.textContent = '🎤';
+  micBtn.textContent = '🎤 说出英文';
+  status.textContent = '点击麦克风说出对应的英文';
   resultEl.textContent = '';
   retryArea.innerHTML = '';
   if (engEl) {
-    engEl.textContent = '点击下方🔍查看';
+    engEl.textContent = '点击🎤说出英文';
     engEl.style.opacity = '0.3';
     engEl.style.fontSize = '28px';
   }
-  startSpellListen(index, todayWords[index]);
-}
-
-function showRetryButtons(index, isSpell, word) {
-  var retryArea = document.getElementById('retryArea');
-  if (!retryArea) return;
-  if (isSpell) {
-    retryArea.innerHTML =
-      '<button class="btn-retry" onclick="retrySpell(' + index + ')">🔁 再试一次</button>' +
-      '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 跳过</button>';
-  } else {
-    retryArea.innerHTML =
-      '<button class="btn-retry" onclick="retryRead(' + index + ')">🔁 再读一次</button>' +
-      '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 跳过</button>';
-  }
+  var hint = document.getElementById('spellHint');
+  if (hint) hint.style.display = '';
 }
 
 function renderCard(index) {

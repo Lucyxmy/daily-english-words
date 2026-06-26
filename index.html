@@ -243,6 +243,103 @@
   }
   .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
   .empty-state p { color: #999; font-size: 15px; line-height: 1.6; }
+
+  /* ---- 模式选择 ---- */
+  .mode-selector {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 6px 0 10px;
+  }
+  .mode-selector button {
+    padding: 5px 12px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 16px;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-selector button.active {
+    background: rgba(255,255,255,0.2);
+    border-color: #fff;
+    color: #fff;
+  }
+
+  /* ---- 语音交互 ---- */
+  .mic-area {
+    margin: 12px 0 8px;
+    position: relative;
+  }
+  .mic-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    background: #f0f0f5;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .mic-btn:active { transform: scale(0.92); }
+  .mic-btn.listening {
+    background: #ff4d4f;
+    color: #fff;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  .mic-btn.success { background: #52c41a; color: #fff; animation: none; }
+  .mic-btn.fail { background: #ff4d4f; color: #fff; animation: none; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,77,79,0.5); }
+    50% { box-shadow: 0 0 0 16px rgba(255,77,79,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,77,79,0); }
+  }
+  .speech-status {
+    font-size: 14px;
+    color: #999;
+    margin-top: 6px;
+    min-height: 22px;
+  }
+  .speech-result {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-top: 4px;
+    min-height: 28px;
+  }
+  .retry-area {
+    margin-top: 14px;
+  }
+  .btn-retry {
+    padding: 8px 24px;
+    border: 2px solid #ff4d4f;
+    border-radius: 12px;
+    background: #fff;
+    color: #ff4d4f;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0 6px;
+  }
+  .btn-next-word {
+    padding: 8px 24px;
+    border: 2px solid #52c41a;
+    border-radius: 12px;
+    background: #fff;
+    color: #52c41a;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0 6px;
+  }
+  .speech-supported-note {
+    font-size: 12px;
+    color: #ccc;
+    margin-top: 8px;
+  }
 </style>
 </head>
 <body>
@@ -263,6 +360,12 @@
   <div class="grade-selector category-selector" id="categorySelector">
     <button data-grade="travel">✈️ 旅游英语</button>
     <button data-grade="daily">🏠 日常生活</button>
+  </div>
+
+  <div class="mode-selector" id="modeSelector">
+    <button data-mode="know" class="active">📖 认识</button>
+    <button data-mode="read">🎤 跟读</button>
+    <button data-mode="spell">🧠 拼读</button>
   </div>
 
   <div class="progress-section">
@@ -793,23 +896,355 @@ function shuffle(arr, rand) {
 }
 
 // ---------- 主逻辑 ----------
-let currentGrade = 1;
+let currentGrade = '1';
+let currentMode = 'know';
 let todayWords = [];
 let currentIndex = 0;
 let knownCount = 0;
 let results = [];
 
+// ---------- 语音识别 ----------
+let recognition = null;
+let isListening = false;
+let _recogAvailable = false;
+
+(function checkSpeechRecognition() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  _recogAvailable = !!SR;
+  if (SR) {
+    recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 3;
+  }
+})();
+
+function startListening(onResult, onEnd) {
+  if (!recognition || isListening) return;
+  try {
+    isListening = true;
+    recognition.onresult = function(e) {
+      isListening = false;
+      var texts = [];
+      for (var i = e.results[0].length - 1; i >= 0; i--) {
+        texts.push(e.results[0][i].transcript.trim().toLowerCase());
+      }
+      if (onResult) onResult(texts);
+    };
+    recognition.onerror = function() {
+      isListening = false;
+      if (onEnd) onEnd();
+    };
+    recognition.onend = function() {
+      isListening = false;
+      if (onEnd) onEnd();
+    };
+    recognition.start();
+  } catch(e) {
+    isListening = false;
+    if (onEnd) onEnd();
+  }
+}
+
+function stopListening() {
+  if (recognition && isListening) {
+    try { recognition.stop(); } catch(e) {}
+    isListening = false;
+  }
+}
+
+function isWordMatch(spoken, target) {
+  var t = target.toLowerCase().trim();
+  for (var i = 0; i < spoken.length; i++) {
+    var s = spoken[i].toLowerCase().trim().replace(/[^a-z\s]/g, '');
+    if (s === t) return true;
+    if (s.indexOf(t) !== -1) return true;
+    if (t.indexOf(s) !== -1 && s.length > 1) return true;
+    // 简单编辑距离检查容错
+    if (Math.abs(s.length - t.length) <= 2) {
+      var dist = 0;
+      var len = Math.min(s.length, t.length);
+      for (var k = 0; k < len; k++) {
+        if (s[k] !== t[k]) dist++;
+      }
+      dist += Math.abs(s.length - t.length);
+      var threshold = Math.max(1, Math.floor(t.length * 0.35));
+      if (dist <= threshold) return true;
+    }
+  }
+  return false;
+}
+
+// ---------- 初始化 ----------
 function init() {
-  document.querySelectorAll('.grade-selector button').forEach(btn => {
+  document.querySelectorAll('.grade-selector button').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.querySelectorAll('.grade-selector button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.grade-selector button').forEach(function(b) { b.classList.remove('active'); });
       this.classList.add('active');
       currentGrade = this.dataset.grade;
       startGame();
     });
   });
+  document.querySelectorAll('.mode-selector button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.mode-selector button').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      currentMode = this.dataset.mode;
+      startGame();
+    });
+  });
   document.querySelector('.grade-selector button[data-grade="1"]').classList.add('active');
   startGame();
+}
+
+function startGame() {
+  var dateStr = getDateStr();
+  document.getElementById('dateDisplay').textContent = dateStr + '  ·  今天也要加油哦 💪';
+
+  var seed = hashStr(dateStr + '-grade' + currentGrade);
+  var rand = seededRandom(seed);
+
+  var words = WORDS_BY_GRADE[currentGrade] || [];
+
+  if (words.length === 0) {
+    document.getElementById('cardArea').innerHTML =
+      '<div class="empty-state"><div class="icon">📚</div><p>该分类暂未录入单词<br>请选择其他分类</p></div>';
+    document.getElementById('resultSection').classList.remove('active');
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressText').textContent = '0/20';
+    return;
+  }
+
+  var unique = [];
+  var seen = new Set();
+  for (var i = 0; i < words.length; i++) {
+    var key = words[i].en.toLowerCase() + '|' + words[i].cn;
+    if (!seen.has(key)) { seen.add(key); unique.push(words[i]); }
+  }
+
+  var count = Math.min(20, unique.length);
+  todayWords = shuffle(unique, rand).slice(0, count);
+  currentIndex = 0;
+  knownCount = 0;
+  results = todayWords.map(function(w) { return { en: w.en, cn: w.cn, known: false }; });
+
+  document.getElementById('cardArea').style.display = 'block';
+  document.getElementById('resultSection').classList.remove('active');
+  renderCard(0);
+  updateProgress();
+}
+
+function renderCard(index) {
+  stopListening();
+  var area = document.getElementById('cardArea');
+  if (index >= todayWords.length) { showResult(); return; }
+  var w = todayWords[index];
+
+  if (currentMode === 'know') renderKnowCard(area, index, w);
+  else if (currentMode === 'read') renderReadCard(area, index, w);
+  else if (currentMode === 'spell') renderSpellCard(area, index, w);
+}
+
+// ===== 认识模式（原有） =====
+function renderKnowCard(area, index, w) {
+  area.innerHTML =
+    '<div class="card active">' +
+      '<div class="word-number">第 ' + (index+1) + ' / ' + todayWords.length + ' 个</div>' +
+      '<div class="word-english" id="wordEnglish">' + w.en + '</div>' +
+      '<div class="word-phonetic">' + (w.phonetic || '') + '</div>' +
+      '<button class="btn-sound" id="btnSound">🔊</button>' +
+      '<div class="word-chinese hidden" id="wordChinese">' + w.cn + '</div>' +
+      '<div class="hint-text">👆 点击英文或点击喇叭听发音</div>' +
+      '<div class="actions">' +
+        '<button class="btn-know" id="btnKnow">😊 知道了</button>' +
+        '<button class="btn-dunno" id="btnDunno">😅 不认识</button>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('wordEnglish').addEventListener('click', function() {
+    document.getElementById('wordChinese').classList.remove('hidden');
+    speak(w.en);
+  });
+  document.getElementById('btnSound').addEventListener('click', function() { speak(w.en); });
+  document.getElementById('btnKnow').addEventListener('click', function() {
+    results[currentIndex].known = true; knownCount++; currentIndex++; renderCard(currentIndex); updateProgress();
+  });
+  document.getElementById('btnDunno').addEventListener('click', function() {
+    results[currentIndex].known = false; currentIndex++; renderCard(currentIndex); updateProgress();
+  });
+}
+
+// ===== 跟读模式 =====
+function renderReadCard(area, index, w) {
+  var srNote = _recogAvailable ? '' : '<div class="speech-supported-note">⚠️ 当前浏览器不支持语音识别，请使用 Chrome</div>';
+  area.innerHTML =
+    '<div class="card active">' +
+      '<div class="word-number">第 ' + (index+1) + ' / ' + todayWords.length + ' 个</div>' +
+      '<div class="word-english">' + w.en + '</div>' +
+      '<div class="word-phonetic">' + (w.phonetic || '') + '</div>' +
+      '<div class="word-chinese" style="opacity:1">' + w.cn + '</div>' +
+      '<div class="mic-area">' +
+        '<button class="mic-btn" id="micBtn">🎤</button>' +
+      '</div>' +
+      '<div class="speech-status" id="speechStatus">🔊 正在播放发音...</div>' +
+      '<div class="speech-result" id="speechResult"></div>' +
+      '<div class="retry-area" id="retryArea"></div>' +
+      srNote +
+    '</div>';
+
+  // 先播放发音，播完后启动录音
+  speak(w.en);
+  setTimeout(function() { startReadListen(index, w); }, 1200);
+}
+
+function startReadListen(index, w) {
+  if (index !== currentIndex) return;
+  var micBtn = document.getElementById('micBtn');
+  var status = document.getElementById('speechStatus');
+  if (!micBtn) return;
+
+  micBtn.classList.add('listening');
+  status.textContent = '🎤 请跟读...';
+
+  startListening(
+    function(texts) {
+      if (index !== currentIndex) return;
+      micBtn.classList.remove('listening');
+      var retryArea = document.getElementById('retryArea');
+      var resultEl = document.getElementById('speechResult');
+
+      if (isWordMatch(texts, w.en)) {
+        micBtn.classList.add('success');
+        micBtn.textContent = '✅';
+        status.textContent = '🎉 读对了！太棒了！';
+        resultEl.textContent = '你读的: ' + texts[0];
+        retryArea.innerHTML = '<button class="btn-next-word" onclick="advanceRead(' + index + ',true)">➡️ 下一个</button>';
+      } else {
+        micBtn.classList.add('fail');
+        micBtn.textContent = '🔄';
+        status.textContent = '🤔 再试试？';
+        resultEl.textContent = '你读的: ' + texts[0];
+        retryArea.innerHTML =
+          '<button class="btn-retry" onclick="retryRead(' + index + ')">🔁 再读一次</button>' +
+          '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 下一个</button>';
+      }
+    },
+    function() {
+      if (index !== currentIndex) return;
+      micBtn.classList.remove('listening');
+    }
+  );
+}
+
+function retryRead(index) {
+  if (index !== currentIndex) return;
+  var micBtn = document.getElementById('micBtn');
+  var status = document.getElementById('speechStatus');
+  var resultEl = document.getElementById('speechResult');
+  var retryArea = document.getElementById('retryArea');
+  if (!micBtn) return;
+
+  micBtn.classList.remove('success', 'fail');
+  micBtn.textContent = '🎤';
+  resultEl.textContent = '';
+  retryArea.innerHTML = '';
+  startReadListen(index, todayWords[index]);
+}
+
+function advanceRead(index, known) {
+  if (index !== currentIndex) return;
+  results[currentIndex].known = known;
+  if (known) knownCount++;
+  currentIndex++;
+  renderCard(currentIndex);
+  updateProgress();
+}
+
+// ===== 拼读模式 =====
+function renderSpellCard(area, index, w) {
+  var srNote = _recogAvailable ? '' : '<div class="speech-supported-note">⚠️ 当前浏览器不支持语音识别，请使用 Chrome</div>';
+  area.innerHTML =
+    '<div class="card active">' +
+      '<div class="word-number">第 ' + (index+1) + ' / ' + todayWords.length + ' 个</div>' +
+      '<div class="word-english" id="spellEnglish" style="opacity:0.3;font-size:28px">点击下方🔍查看</div>' +
+      '<div class="word-phonetic"></div>' +
+      '<div class="word-chinese" style="opacity:1;font-size:32px">' + w.cn + '</div>' +
+      '<div class="mic-area">' +
+        '<button class="mic-btn" id="micBtn">🎤</button>' +
+      '</div>' +
+      '<div class="speech-status" id="speechStatus">🎤 说出对应的英文单词...</div>' +
+      '<div class="speech-result" id="speechResult"></div>' +
+      '<div class="retry-area" id="retryArea"></div>' +
+      srNote +
+    '</div>';
+
+  setTimeout(function() { startSpellListen(index, w); }, 300);
+}
+
+function startSpellListen(index, w) {
+  if (index !== currentIndex) return;
+  var micBtn = document.getElementById('micBtn');
+  var status = document.getElementById('speechStatus');
+  if (!micBtn) return;
+
+  micBtn.classList.add('listening');
+  status.textContent = '🎤 请说出英文...';
+
+  startListening(
+    function(texts) {
+      if (index !== currentIndex) return;
+      micBtn.classList.remove('listening');
+      var retryArea = document.getElementById('retryArea');
+      var resultEl = document.getElementById('speechResult');
+      var engEl = document.getElementById('spellEnglish');
+
+      if (isWordMatch(texts, w.en)) {
+        micBtn.classList.add('success');
+        micBtn.textContent = '✅';
+        status.textContent = '🎉 拼对了！';
+        resultEl.textContent = '你读的: ' + texts[0];
+        engEl.textContent = w.en;
+        engEl.style.opacity = '1';
+        engEl.style.fontSize = '40px';
+        retryArea.innerHTML = '<button class="btn-next-word" onclick="advanceRead(' + index + ',true)">➡️ 下一个</button>';
+      } else {
+        micBtn.classList.add('fail');
+        micBtn.textContent = '🔄';
+        status.textContent = '🤔 不对哦，再想想？';
+        resultEl.textContent = '你读的: ' + texts[0];
+        engEl.textContent = w.en;
+        engEl.style.opacity = '1';
+        engEl.style.fontSize = '40px';
+        retryArea.innerHTML =
+          '<button class="btn-retry" onclick="retrySpell(' + index + ')">🔁 再试一次</button>' +
+          '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 下一个</button>';
+      }
+    },
+    function() {
+      if (index !== currentIndex) return;
+      micBtn.classList.remove('listening');
+    }
+  );
+}
+
+function retrySpell(index) {
+  if (index !== currentIndex) return;
+  var micBtn = document.getElementById('micBtn');
+  var status = document.getElementById('speechStatus');
+  var resultEl = document.getElementById('speechResult');
+  var retryArea = document.getElementById('retryArea');
+  var engEl = document.getElementById('spellEnglish');
+  if (!micBtn) return;
+
+  micBtn.classList.remove('success', 'fail');
+  micBtn.textContent = '🎤';
+  resultEl.textContent = '';
+  retryArea.innerHTML = '';
+  engEl.textContent = '点击下方🔍查看';
+  engEl.style.opacity = '0.3';
+  engEl.style.fontSize = '28px';
+  startSpellListen(index, todayWords[index]);
 }
 
 function startGame() {

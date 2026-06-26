@@ -992,53 +992,84 @@ let knownCount = 0;
 let results = [];
 
 // ---------- 语音识别 ----------
-let recognition = null;
-let isListening = false;
 let _recogAvailable = false;
 
 (function checkSpeechRecognition() {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   _recogAvailable = !!SR;
-  if (SR) {
-    recognition = new SR();
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-    recognition.continuous = false;
-    recognition.maxAlternatives = 3;
-  }
 })();
 
+function createRecognition() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  var r = new SR();
+  r.lang = 'en-US';
+  r.interimResults = false;
+  r.continuous = false;
+  r.maxAlternatives = 3;
+  return r;
+}
+
+var _recognition = null;
+var _isListening = false;
+var _listenTimeout = null;
+
 function startListening(onResult, onEnd) {
-  if (!recognition || isListening) return;
+  if (_isListening) return;
+  if (!_recogAvailable) {
+    if (onEnd) onEnd('unsupported');
+    return;
+  }
   try {
-    isListening = true;
-    recognition.onresult = function(e) {
-      isListening = false;
+    _recognition = createRecognition();
+    if (!_recognition) {
+      if (onEnd) onEnd('unsupported');
+      return;
+    }
+    _isListening = true;
+    // 超时保护：10秒后自动停止
+    _listenTimeout = setTimeout(function() {
+      if (_isListening) {
+        try { _recognition.abort(); } catch(e) {}
+        _isListening = false;
+        if (onEnd) onEnd('timeout');
+      }
+    }, 10000);
+
+    _recognition.onresult = function(e) {
+      clearTimeout(_listenTimeout);
+      _isListening = false;
       var texts = [];
       for (var i = e.results[0].length - 1; i >= 0; i--) {
         texts.push(e.results[0][i].transcript.trim().toLowerCase());
       }
       if (onResult) onResult(texts);
     };
-    recognition.onerror = function() {
-      isListening = false;
-      if (onEnd) onEnd();
+    _recognition.onerror = function(e) {
+      clearTimeout(_listenTimeout);
+      _isListening = false;
+      if (onEnd) onEnd(e.error === 'no-speech' ? 'no-speech' : 'error');
     };
-    recognition.onend = function() {
-      isListening = false;
-      if (onEnd) onEnd();
+    _recognition.onend = function() {
+      clearTimeout(_listenTimeout);
+      if (_isListening) {
+        _isListening = false;
+        if (onEnd) onEnd('end');
+      }
     };
-    recognition.start();
+    _recognition.start();
   } catch(e) {
-    isListening = false;
-    if (onEnd) onEnd();
+    clearTimeout(_listenTimeout);
+    _isListening = false;
+    if (onEnd) onEnd('error');
   }
 }
 
 function stopListening() {
-  if (recognition && isListening) {
-    try { recognition.stop(); } catch(e) {}
-    isListening = false;
+  clearTimeout(_listenTimeout);
+  if (_recognition && _isListening) {
+    try { _recognition.abort(); } catch(e) {}
+    _isListening = false;
   }
 }
 
@@ -1195,9 +1226,19 @@ function startReadListen(index, w) {
           '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 下一个</button>';
       }
     },
-    function() {
+    function(reason) {
       if (index !== currentIndex) return;
       micBtn.classList.remove('listening');
+      if (reason === 'unsupported') {
+        status.textContent = '⚠️ 当前浏览器不支持语音识别，请使用 Chrome';
+        micBtn.style.display = 'none';
+      } else if (reason === 'timeout') {
+        status.textContent = '⏱️ 没听到声音，点击重试';
+        showRetryButtons(index, false, w.en);
+      } else if (reason === 'no-speech') {
+        status.textContent = '🔇 没听到声音，请重试';
+        showRetryButtons(index, false, w.en);
+      }
     }
   );
 }
@@ -1211,6 +1252,7 @@ function retryRead(index) {
   if (!micBtn) return;
 
   micBtn.classList.remove('success', 'fail');
+  micBtn.style.display = '';
   micBtn.textContent = '🎤';
   resultEl.textContent = '';
   retryArea.innerHTML = '';
@@ -1286,9 +1328,19 @@ function startSpellListen(index, w) {
           '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 下一个</button>';
       }
     },
-    function() {
+    function(reason) {
       if (index !== currentIndex) return;
       micBtn.classList.remove('listening');
+      if (reason === 'unsupported') {
+        status.textContent = '⚠️ 当前浏览器不支持语音识别，请使用 Chrome';
+        micBtn.style.display = 'none';
+      } else if (reason === 'timeout') {
+        status.textContent = '⏱️ 没听到声音，点击重试';
+        showRetryButtons(index, true, w.en);
+      } else if (reason === 'no-speech') {
+        status.textContent = '🔇 没听到声音，请重试';
+        showRetryButtons(index, true, w.en);
+      }
     }
   );
 }
@@ -1299,17 +1351,33 @@ function retrySpell(index) {
   var status = document.getElementById('speechStatus');
   var resultEl = document.getElementById('speechResult');
   var retryArea = document.getElementById('retryArea');
-  var engEl = document.getElementById('spellEnglish');
   if (!micBtn) return;
 
   micBtn.classList.remove('success', 'fail');
+  micBtn.style.display = '';
   micBtn.textContent = '🎤';
   resultEl.textContent = '';
   retryArea.innerHTML = '';
-  engEl.textContent = '点击下方🔍查看';
-  engEl.style.opacity = '0.3';
-  engEl.style.fontSize = '28px';
+  if (engEl) {
+    engEl.textContent = '点击下方🔍查看';
+    engEl.style.opacity = '0.3';
+    engEl.style.fontSize = '28px';
+  }
   startSpellListen(index, todayWords[index]);
+}
+
+function showRetryButtons(index, isSpell, word) {
+  var retryArea = document.getElementById('retryArea');
+  if (!retryArea) return;
+  if (isSpell) {
+    retryArea.innerHTML =
+      '<button class="btn-retry" onclick="retrySpell(' + index + ')">🔁 再试一次</button>' +
+      '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 跳过</button>';
+  } else {
+    retryArea.innerHTML =
+      '<button class="btn-retry" onclick="retryRead(' + index + ')">🔁 再读一次</button>' +
+      '<button class="btn-next-word" onclick="advanceRead(' + index + ',false)">➡️ 跳过</button>';
+  }
 }
 
 function renderCard(index) {
